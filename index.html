@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Card Decks</title>
+<meta name="theme-color" content="#e31e54">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #1a1a1a;
+    --radius: 14px;
+    --top-h:  56px;
+    --gap:    10px;
+    --pad:    14px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    color: #fff;
+    overscroll-behavior: none;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--top-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 20;
+    background: linear-gradient(to bottom, rgba(26,26,26,0.97) 65%, transparent);
+  }
+  .header-title {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.3;
+  }
+  .header-title a {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+  }
+  .deck-count {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── FEED ── */
+  .feed {
+    padding: calc(var(--top-h) + var(--pad)) var(--pad) var(--pad);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap);
+  }
+
+  /* ── TILE ── */
+  .tile {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #222;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    /* Square aspect ratio */
+    aspect-ratio: 1 / 1;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .tile:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+  .tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+  /* Gradient overlay for title legibility */
+  .tile-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(0,0,0,0.72) 0%,
+      rgba(0,0,0,0.1) 55%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+  .tile-title {
+    position: absolute;
+    bottom: 10px; left: 10px; right: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+    line-height: 1.3;
+    pointer-events: none;
+  }
+
+  /* Skeleton shimmer for tiles loading */
+  .tile-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, #222 30%, #2e2e2e 50%, #222 70%);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s infinite linear;
+  }
+  @keyframes shimmer {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .tile img.loaded ~ .tile-skeleton { display: none; }
+
+  /* ── LOADING ── */
+  .loading-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; z-index: 50;
+    background: var(--bg);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: opacity 0.3s;
+  }
+  .loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+  .loader-icon-wrap { position: relative; width: 64px; height: 84px; }
+  .loader-icon-wrap img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    clip-path: inset(100% 0 0 0);
+    transition: clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .loader-icon-wrap img.reveal { clip-path: inset(0% 0 0 0); }
+
+  /* ── ERROR ── */
+  .error-msg {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.4);
+    text-align: center; padding: 40px;
+    gap: 12px; font-size: 0.9rem; line-height: 1.6;
+  }
+  .error-msg.visible { display: flex; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="header-title" id="headerTitle">Card Decks by <a href="https://www.linkedin.com/company/atourbest/" target="_blank" rel="noopener noreferrer">AT OUR BEST Lab</a></span>
+  <span class="deck-count" id="deckCount"></span>
+</header>
+
+<div class="feed" id="feed"></div>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loader-icon-wrap">
+    <img id="loaderIcon" src="loader-icon.png" alt="Loading">
+  </div>
+  <span id="loadingText">Loading decks…</span>
+</div>
+
+<div class="error-msg" id="errorMsg">
+  <span style="font-size:2.5rem">🃏</span>
+  <strong>No decks found</strong>
+  <span>Add deck folders and update<br><code>decks.json</code> to get started.</span>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const DECKS_FILE = 'decks.json';
+
+// ── ELEMENTS ──────────────────────────────────────────────────────────────
+const feed          = document.getElementById('feed');
+const loadingScreen = document.getElementById('loadingScreen');
+const loadingText   = document.getElementById('loadingText');
+const loaderIcon    = document.getElementById('loaderIcon');
+const errorMsg      = document.getElementById('errorMsg');
+const deckCount     = document.getElementById('deckCount');
+
+// ── LOAD CONFIG ───────────────────────────────────────────────────────────
+async function loadHubConfig() {
+  try {
+    const res = await fetch('hub-config.json');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (cfg.title) {
+      const el = document.getElementById('headerTitle');
+      if (cfg.brandUrl && cfg.brandName) {
+        el.innerHTML = `${cfg.title} by <a href="${cfg.brandUrl}" target="_blank" rel="noopener noreferrer">${cfg.brandName}</a>`;
+      } else {
+        el.textContent = cfg.title;
+      }
+    }
+    if (cfg.themeColor) {
+      document.querySelector('meta[name="theme-color"]').content = cfg.themeColor;
+    }
+  } catch {}
+}
+
+// ── LOAD DECKS ────────────────────────────────────────────────────────────
+async function loadDecks() {
+  const res  = await fetch(DECKS_FILE);
+  if (!res.ok) throw new Error('decks.json not found');
+  return res.json();
+}
+
+// ── BUILD TILES ───────────────────────────────────────────────────────────
+function buildTile(deck) {
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+
+  const skel = document.createElement('div');
+  skel.className = 'tile-skeleton';
+  tile.appendChild(skel);
+
+  const img = new Image();
+  img.alt = deck.title;
+  img.onload = () => img.classList.add('loaded');
+  img.onerror = () => {
+    // No cover image — show colour background with title only
+    skel.style.animation = 'none';
+    skel.style.background = '#2a2a2a';
+  };
+  img.src = `${deck.folder}/images/cover.png`;
+  tile.appendChild(img);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'tile-overlay';
+  tile.appendChild(overlay);
+
+  const title = document.createElement('div');
+  title.className = 'tile-title';
+  title.textContent = deck.title;
+  tile.appendChild(title);
+
+  // Navigate to deck — pass fromHub flag so back button appears
+  tile.addEventListener('click', () => {
+    window.location.href = `${deck.folder}/index.html?fromHub=1`;
+  });
+
+  return tile;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+(async () => {
+  await loadHubConfig();
+
+  // Reveal loader icon
+  requestAnimationFrame(() => requestAnimationFrame(() => loaderIcon.classList.add('reveal')));
+
+  let decks;
+  try {
+    decks = await loadDecks();
+  } catch (e) {
+    loadingScreen.style.opacity = '0';
+    setTimeout(() => { loadingScreen.style.display = 'none'; }, 300);
+    errorMsg.classList.add('visible');
+    return;
+  }
+
+  if (!decks || decks.length === 0) {
+    loadingScreen.style.opacity = '0';
+    setTimeout(() => { loadingScreen.style.display = 'none'; }, 300);
+    errorMsg.classList.add('visible');
+    return;
+  }
+
+  deckCount.textContent = `${decks.length} deck${decks.length !== 1 ? 's' : ''}`;
+  decks.forEach(deck => feed.appendChild(buildTile(deck)));
+
+  loadingText.textContent = `${decks.length} deck${decks.length !== 1 ? 's' : ''} found`;
+  setTimeout(() => {
+    loadingScreen.style.opacity = '0';
+    loadingScreen.style.transition = 'opacity 0.4s';
+    setTimeout(() => { loadingScreen.style.display = 'none'; }, 400);
+  }, 300);
+})();
+</script>
+</body>
+</html>
