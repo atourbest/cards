@@ -234,11 +234,10 @@ function buildTile(deck) {
   img.alt = deck.title;
   img.onload = () => img.classList.add('loaded');
   img.onerror = () => {
-    // No cover image — show colour background with title only
     skel.style.animation = 'none';
     skel.style.background = '#2a2a2a';
   };
-  img.src = `${deck.folder}/images/cover.png`;
+  img.src = `images/${deck.folder}.png`;
   tile.appendChild(img);
 
   const overlay = document.createElement('div');
