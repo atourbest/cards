@@ -230,15 +230,15 @@ function buildTile(deck) {
   skel.className = 'tile-skeleton';
   tile.appendChild(skel);
 
-  const img = new Image();
+  const img = document.createElement('img');
   img.alt = deck.title;
   img.onload = () => img.classList.add('loaded');
   img.onerror = () => {
     skel.style.animation = 'none';
     skel.style.background = '#2a2a2a';
   };
+  tile.appendChild(img); // append BEFORE setting src so onload fires reliably
   img.src = `images/${deck.folder}.png`;
-  tile.appendChild(img);
 
   const overlay = document.createElement('div');
   overlay.className = 'tile-overlay';
