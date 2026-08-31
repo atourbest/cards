@@ -122,7 +122,7 @@
     0%   { background-position:  200% 0; }
     100% { background-position: -200% 0; }
   }
-  .tile img.loaded ~ .tile-skeleton { display: none; }
+  .tile.img-loaded .tile-skeleton { display: none; }
 
   /* ── LOADING ── */
   .loading-screen {
@@ -232,7 +232,10 @@ function buildTile(deck) {
 
   const img = document.createElement('img');
   img.alt = deck.title;
-  img.onload = () => img.classList.add('loaded');
+  img.onload = () => {
+    img.classList.add('loaded');
+    tile.classList.add('img-loaded');
+  };
   img.onerror = () => {
     skel.style.animation = 'none';
     skel.style.background = '#2a2a2a';
