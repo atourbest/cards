@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Values Cards</title>
+<meta name="theme-color" content="#e31e54">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Values Cards">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #1a1a1a;
+    --radius: 18px;
+    --btn-h:  80px;
+    --top-h:  52px;
+    --sliver: 18px;
+    --gap:    6px;
+    --gold:   #f5c842;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--top-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 20;
+    background: linear-gradient(to bottom, rgba(26,26,26,0.97) 65%, transparent);
+  }
+  .header-title {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.3;
+  }
+  .header-title a {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+  }
+  .counter {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.4);
+    white-space: nowrap;
+  }
+  /* Favourites mode badge in header */
+  .fav-mode-badge {
+    display: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.9;
+  }
+  body.fav-mode .fav-mode-badge { display: inline; }
+  body.fav-mode .header-title    { display: none; }
+
+  /* ── VIEWPORT & TRACK ── */
+  .viewport {
+    position: fixed;
+    top: var(--top-h);
+    bottom: var(--btn-h);
+    left: 0; right: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  .track {
+    display: flex;
+    height: 100%;
+    will-change: transform;
+    transform: translateX(0px);
+  }
+
+  .card-slot {
+    flex: 0 0 100vw;
+    width: 100vw;
+    /* No padding — cards are inset via their own margins */
+    padding: 4px 0;
+    display: flex;
+    /* Allow adjacent cards to overflow into neighbouring slots visibly */
+    overflow: visible;
+  }
+
+  /* ── CARD ── */
+  .card {
+    flex: 0 0 calc(100vw - var(--sliver) * 2 - var(--gap) * 2);
+    border-radius: var(--radius);
+    /* overflow visible so buttons sit above the 3D card-inner */
+    overflow: visible;
+    background: transparent;
+    position: relative;
+    margin: 0 calc(var(--sliver) + var(--gap));
+    transition: opacity 0.25s, filter 0.25s;
+  }
+  .card.dimmed {
+    opacity: 0.38;
+    filter: brightness(0.6);
+  }
+  .card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    pointer-events: none;
+  }
+  .card-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, #222 30%, #303030 50%, #222 70%);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s infinite linear;
+    border-radius: var(--radius);
+  }
+  @keyframes shimmer {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .card img.loaded ~ .card-skeleton { display: none; }
+
+  /* Flip indicator — shown on cards with a back image */
+  .card-has-back::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 56px; height: 56px;
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 4v6h6'/%3E%3Cpath d='M23 20v-6h-6'/%3E%3Cpath d='M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: 10;
+  }
+  .card-has-back:not(.dimmed)::after { opacity: 0.85; }
+
+  /* Brand logo overlay — bottom left */
+  .card-logo {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    width: 56px !important;
+    height: 56px !important;
+    max-width: 56px !important;
+    max-height: 56px !important;
+    object-fit: contain;
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    display: block;
+    overflow: hidden;
+  }
+  .card:not(.dimmed) .card-logo { opacity: 0.75; }
+  .card-logo:active { opacity: 0.4; }
+
+
+
+  /* Card number badge — hidden, counter shown in header instead */
+  .card-badge { display: none; }
+  .card-badge {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.06em;
+    pointer-events: none;
+  }
+
+  /* ── BOOKMARK BUTTON — top right of each card ── */
+  .bookmark-btn {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 56px; height: 56px;
+    border: none;
+    background: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.9rem;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s, color 0.2s;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .card:not(.dimmed) .bookmark-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .bookmark-btn:active { transform: scale(0.85); }
+  .bookmark-btn.saved { color: rgba(245,200,66,0.9); }
+
+
+  /* ── 3D FLIP WRAPPER ── */
+  .card-inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--radius);
+    /* Ensure card-inner sits below overlay buttons */
+    z-index: 1;
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+
+  .card-face.back {
+    transform: rotateY(180deg);
+    background: #111;
+  }
+  .card-face img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block; pointer-events: none;
+  }
+  .card-face .card-skeleton {
+    border-radius: var(--radius);
+  }
+
+  /* Pop animation when bookmarked */
+  @keyframes bookmarkPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35); }
+    70%  { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+  .bookmark-btn.pop { animation: bookmarkPop 0.35s ease; }
+
+
+  /* ── BUTTON BAR ── */
+  .btn-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--btn-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px 16px;
+    gap: 12px;
+    z-index: 20;
+    background: linear-gradient(to top, rgba(26,26,26,1) 55%, transparent);
+  }
+
+  /* Normal mode: back + dice + star */
+  .btn-normal { display: flex; gap: 12px; width: 100%; max-width: 300px; align-items: center; }
+  .btn-fav-mode { display: none; width: 100%; max-width: 300px; }
+  body.fav-mode .btn-normal   { display: none; }
+  body.fav-mode .btn-fav-mode { display: flex; }
+
+  /* Back button — only shown when fromHub=1 in URL */
+  .btn-back {
+    flex: 0 0 44px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: transparent;
+    color: #fff;
+    display: none; /* hidden by default, shown via JS */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-back.visible { display: flex; }
+  .btn-back:active { opacity: 0.5; }
+  .btn-back svg { display: block; }
+
+  .btn {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-size: 1.4rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s, box-shadow 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn:active { transform: scale(0.94); }
+
+  .btn-dice {
+    background: #e31e54;
+    box-shadow: 0 4px 18px rgba(227,30,84,0.45);
+  }
+  .btn-star {
+    background: #2a2a2a;
+    border: 1.5px solid rgba(245,200,66,0.35);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  /* Star button glows gold when there are favourites */
+  .btn-star.has-favs {
+    border-color: rgba(245,200,66,0.7);
+    box-shadow: 0 4px 18px rgba(245,200,66,0.2);
+  }
+  /* Small count badge on star button */
+  .btn-star .fav-count {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: var(--gold);
+    color: #111;
+    font-size: 0.55rem;
+    font-weight: 800;
+    min-width: 14px; height: 14px;
+    border-radius: 7px;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+  .btn-star.has-favs .fav-count { display: flex; }
+
+  /* Exit favourites button */
+  .btn-exit-favs {
+    background: #2a2a2a;
+    border: 1.5px solid rgba(245,200,66,0.5);
+    color: var(--gold);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+    font-family: inherit;
+  }
+
+  /* Empty favourites message */
+  .empty-favs {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    padding: 40px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    z-index: 25;
+    pointer-events: none;
+  }
+  .empty-favs.visible { display: flex; }
+  .empty-favs-icon { font-size: 2.4rem; }
+  .empty-favs strong { color: rgba(255,255,255,0.6); font-size: 1rem; }
+
+  /* ── LOADING & ERROR ── */
+  .loading-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; z-index: 50;
+    background: var(--bg);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    transition: opacity 0.4s;
+  }
+  .loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* Icon with bottom-to-top reveal via clip-path */
+  .loader-icon-wrap {
+    position: relative;
+    width: 72px;
+    height: 94px; /* maintains icon aspect ratio ~130:170 */
+  }
+  .loader-icon-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    /* clip-path reveals bottom-to-top: starts fully hidden, animates to fully shown */
+    clip-path: inset(100% 0 0 0);
+    transition: clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .loader-icon-wrap img.reveal {
+    clip-path: inset(0% 0 0 0);
+  }
+  .loading-label {
+    color: rgba(255,255,255,0.35);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .error-msg {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.4);
+    text-align: center; padding: 40px;
+    gap: 12px; font-size: 0.9rem; line-height: 1.6;
+  }
+  .error-msg.visible { display: flex; }
+  .error-icon { font-size: 2.5rem; }
+
+  /* ── ROTATE PROMPT — shown in landscape ── */
+  #rotatePrompt {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: var(--bg);
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+    pointer-events: none;
+  }
+  #rotatePrompt .rotate-icon { font-size: 3rem; animation: rotateHint 1.8s ease-in-out infinite; display: block; }
+  @keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    50%       { transform: rotate(-90deg); }
+  }
+  @media (orientation: landscape) {
+    #rotatePrompt { display: flex; }
+  }
+
+
+  /* ── INSTALL PROMPT ── */
+  #installPrompt {
+    position: fixed;
+    top: calc(var(--top-h) + 8px);
+    left: 16px; right: 16px;
+    background: #2a2a2a;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 40;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transform: translateY(0);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  #installPrompt.hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
+  #installPrompt img { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+  #installPrompt .install-text { flex: 1; }
+  #installPrompt .install-text strong { display: block; color: #fff; font-size: 0.82rem; margin-bottom: 2px; }
+  #installPrompt .install-text span  { color: rgba(255,255,255,0.45); font-size: 0.72rem; line-height: 1.4; }
+  #installPrompt .install-close {
+    background: none; border: none; color: rgba(255,255,255,0.35);
+    font-size: 1.1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="header-title" id="headerTitle"></span>
+  <span class="fav-mode-badge">⭐ Favourites</span>
+  <span class="counter" id="counter"></span>
+</header>
+
+<div class="viewport" id="viewport">
+  <div class="track" id="track"></div>
+</div>
+
+<!-- Swipe hint -->
+
+<!-- Empty favourites message -->
+<div class="empty-favs" id="emptyFavs">
+  <span class="empty-favs-icon">⭐</span>
+  <strong>No favourites yet</strong>
+  <span>Tap the ★ on any card<br>to save it here</span>
+</div>
+
+<div class="btn-bar">
+  <!-- Normal mode -->
+  <div class="btn-normal">
+    <button type="button" class="btn-back" id="btnBack" title="Back to decks">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button type="button" class="btn btn-dice" id="btnRandom" title="Surprise me">🎲</button>
+    <button type="button" class="btn btn-star" id="btnFavs" title="View favourites">
+      ⭐
+      <span class="fav-count" id="favCount">0</span>
+    </button>
+  </div>
+  <!-- Favourites mode -->
+  <div class="btn-fav-mode">
+    <button type="button" class="btn btn-exit-favs" id="btnExitFavs">✕ Exit Favourites</button>
+  </div>
+</div>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loader-icon-wrap">
+    <img id="loaderIcon" src="loader-icon.png" alt="Loading">
+  </div>
+  <span class="loading-label" id="loadingText">Finding cards…</span>
+</div>
+
+<div class="error-msg" id="errorMsg">
+  <span class="error-icon">🃏</span>
+  <strong>No cards found</strong>
+  <span>Add images named card1.png, card2.png…<br>to the <code>images/</code> folder and redeploy.</span>
+</div>
+
+
+
+<!-- Rotate prompt -->
+<div id="rotatePrompt">
+  <span class="rotate-icon">📱</span>
+  <span>Please rotate your device<br>to portrait mode</span>
+</div>
+<!-- Install prompt -->
+<div id="installPrompt" class="hidden">
+  <img src="icon-192.png" alt="App icon">
+  <div class="install-text">
+    <strong>Add to Home Screen</strong>
+    <span>Tap Share then "Add to Home Screen" for the best experience</span>
+  </div>
+  <button type="button" class="install-close" id="installClose">✕</button>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const IMAGE_FOLDER  = 'images/';
+const IMAGE_EXT     = '.png';
+const MAX_CARDS     = 200;
+const PRELOAD_AHEAD = 3;
+const SNAP_MS       = 320;
+const FAV_KEY       = 'vc_favourites';   // localStorage key for favourites
+
+// ── ELEMENTS ──────────────────────────────────────────────────────────────
+const viewport    = document.getElementById('viewport');
+const track       = document.getElementById('track');
+const counter     = document.getElementById('counter');
+const btnRandom   = document.getElementById('btnRandom');
+const btnFavs     = document.getElementById('btnFavs');
+const btnExitFavs = document.getElementById('btnExitFavs');
+const favCountEl  = document.getElementById('favCount');
+const emptyFavs   = document.getElementById('emptyFavs');
+const loadingScreen = document.getElementById('loadingScreen');
+const loadingText   = document.getElementById('loadingText');
+const errorMsg      = document.getElementById('errorMsg');
+const headerTitle   = document.getElementById('headerTitle');
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let total      = 0;
+let current    = 0;   // -1 = cover, 0..total-1 = numbered cards
+let hasCover     = false;
+let hasCoverBack = false;
+let hasBack      = new Set(); // real indices that have a back image (cardNb.png)
+let favMode    = false;  // are we in favourites view?
+let flippedCards = new Set(); // slot indices currently showing their back face
+let favList    = [];     // ordered list of real indices (0-based) in fav view
+
+// ── FAVOURITES ────────────────────────────────────────────────────────────
+function loadFavs() {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveFavs(favs) {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch {}
+}
+
+function isFav(realIndex) {
+  return loadFavs().includes(realIndex);
+}
+
+function toggleFav(realIndex) {
+  const favs = loadFavs();
+  const idx  = favs.indexOf(realIndex);
+  if (idx === -1) favs.push(realIndex);
+  else            favs.splice(idx, 1);
+  saveFavs(favs);
+  updateFavUI();
+  return idx === -1; // true = was added
+}
+
+function updateFavUI() {
+  const favs  = loadFavs();
+  const count = favs.length;
+
+  // Update count badge on star button
+  favCountEl.textContent = count;
+  btnFavs.classList.toggle('has-favs', count > 0);
+
+  // Update all bookmark buttons in DOM
+  document.querySelectorAll('.bookmark-btn').forEach(btn => {
+    const ri = parseInt(btn.dataset.real);
+    const saved = favs.includes(ri);
+    btn.classList.toggle('saved', saved);
+    btn.textContent = saved ? '★' : '☆';
+  });
+}
+
+// ── FAVOURITES MODE ───────────────────────────────────────────────────────
+function enterFavMode() {
+  const favs = loadFavs();
+  if (favs.length === 0) {
+    // Show empty message briefly
+    emptyFavs.classList.add('visible');
+    setTimeout(() => emptyFavs.classList.remove('visible'), 2500);
+    return;
+  }
+
+  favMode = true;
+  favList = [...favs]; // snapshot of favourites in order saved
+  document.body.classList.add('fav-mode');
+
+  // Build a mini track with only favourited cards
+  buildFavTrack();
+  current = 0; // start at first favourite (0-based within favList)
+  setX(snapX());
+  updateCounter();
+  updateDimming();
+  preloadFavSlots();
+}
+
+function exitFavMode() {
+  favMode = false;
+  document.body.classList.remove('fav-mode');
+
+  // Rebuild the normal track and return to cover
+  buildTrack();
+
+  // Deep link — ?card=N jumps directly to that card
+  const urlParams = new URLSearchParams(window.location.search);
+  const deepCard  = parseInt(urlParams.get('card'));
+  current = (deepCard >= 1 && deepCard <= total) ? deepCard - 1 : -1;
+
+  setX(snapX());
+  updateCounter();
+  updateDimming();
+  preloadAround(trackIndex());
+}
+
+// ── SLOT HELPERS (normal mode) ────────────────────────────────────────────
+// current = -1  → cover
+// current = 0..total-1 → numbered cards
+//
+// Track layout (total+3 slots):
+//   slot 0        = cover
+//   slot 1        = ghost of last numbered card
+//   slots 2..N+1  = numbered cards 0..N-1
+//   slot N+2      = ghost of first numbered card
+
+function trackIndex() {
+  if (favMode) return current + 1; // fav track: [ghost-last][fav0..favN][ghost-first]
+  return current === -1 ? 0 : current + 2;
+}
+function slotCount() {
+  if (favMode) return favList.length + 2;
+  return total + 3;
+}
+function snapX() { return -trackIndex() * viewport.offsetWidth; }
+
+// ── CARD DISCOVERY ────────────────────────────────────────────────────────
+async function discoverCards() {
+  async function probe(path) {
+    try { const r = await fetch(path,{method:'HEAD'}); return r.ok; } catch { return false; }
+  }
+  async function probeN(n) {
+    try { const r = await fetch(`${IMAGE_FOLDER}card${n}${IMAGE_EXT}`,{method:'HEAD'}); return r.ok ? n : 0; }
+    catch { return 0; }
+  }
+  hasCover = await probe(`${IMAGE_FOLDER}cover${IMAGE_EXT}`);
+  hasCoverBack = await probe(`${IMAGE_FOLDER}coverb${IMAGE_EXT}`);
+
+  // Probe for back images (card1b.png, card2b.png...) in parallel
+  // We only probe up to whatever total we found — set after milestones below
+  // so we do a second pass after total is known (see end of function)
+  const milestones = [1,5,10,20,30,40,50,60,70,80,90,100,120,150,MAX_CARDS];
+  const hits = await Promise.all(milestones.map(probeN));
+  const high = Math.max(...hits);
+  if (!high) return 0;
+  const si  = milestones.indexOf(high);
+  const low = si > 0 ? milestones[si-1]+1 : 1;
+  const fine = [];
+  for (let n = low; n <= Math.min(high+10, MAX_CARDS); n++) fine.push(n);
+  const t = Math.max(...(await Promise.all(fine.map(probeN))));
+
+  // Now probe back images for all discovered cards in parallel
+  const backProbes = [];
+  for (let n = 1; n <= t; n++) backProbes.push(
+    probe(`${IMAGE_FOLDER}card${n}b${IMAGE_EXT}`).then(ok => ok ? hasBack.add(n - 1) : null)
+  );
+  await Promise.all(backProbes);
+
+  return t;
+}
+
+// ── BUILD DOM — NORMAL TRACK ──────────────────────────────────────────────
+const loadedSlots = new Set();
+
+function makeSlot(type, realIndex, slotIndex) {
+  const slot = document.createElement('div');
+  slot.className = 'card-slot';
+
+  const card = document.createElement('div');
+  const thisHasBack = (type === 'numbered' && hasBack.has(realIndex)) ||
+                      (type === 'cover' && hasCoverBack);
+  card.className = 'card dimmed' + (thisHasBack ? ' card-has-back' : '');
+  card.dataset.type = type;
+  card.dataset.real = realIndex;
+  card.id = `slot-${slotIndex}`;
+
+  // Card inner — holds front and back faces for 3D flip
+  const inner = document.createElement('div');
+  inner.className = 'card-inner';
+
+  // Front face
+  const front = document.createElement('div');
+  front.className = 'card-face front';
+  const skel = document.createElement('div');
+  skel.className = 'card-skeleton';
+  front.appendChild(skel);
+  inner.appendChild(front);
+
+  // Back face — numbered cards with back image, or cover with coverb.png
+  let back = null;
+  const slotHasBack = (type === 'numbered' && hasBack.has(realIndex)) ||
+                      (type === 'cover' && hasCoverBack);
+  if (slotHasBack) {
+    back = document.createElement('div');
+    back.className = 'card-face back';
+    const backSkel = document.createElement('div');
+    backSkel.className = 'card-skeleton';
+    back.appendChild(backSkel);
+    inner.appendChild(back);
+  }
+
+  card.appendChild(inner);
+
+  if (type !== 'cover') {
+    const badge = document.createElement('div');
+    badge.className = 'card-badge';
+    badge.textContent = `${realIndex + 1} / ${total}`;
+    card.appendChild(badge);
+  }
+
+  // Bookmark button — top right, numbered cards only
+  if (type === 'numbered') {
+    const bm = document.createElement('button');
+    bm.type = 'button';
+    bm.className = 'bookmark-btn';
+    bm.dataset.real = realIndex;
+    const saved = isFav(realIndex);
+    bm.classList.toggle('saved', saved);
+    bm.textContent = saved ? '★' : '☆';
+    bm.addEventListener('touchend', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFav(realIndex);
+      bm.classList.add('pop');
+      bm.addEventListener('animationend', () => bm.classList.remove('pop'), { once: true });
+    }, { passive: false });
+    bm.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+    card.appendChild(bm);
+  }
+
+  // Brand logo — bottom left — links to deck URL from config
+  if (type !== 'ghost-last' && type !== 'ghost-first') {
+    const logo = document.createElement('img');
+    logo.className = 'card-logo';
+    logo.src = 'brand-logo.png';
+    logo.alt = 'Brand';
+    logo.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
+    logo.addEventListener('touchend', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shareUrl = window.DECK_URL || window.location.origin;
+      if (navigator.share) {
+        navigator.share({ url: shareUrl }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(shareUrl).catch(() => {});
+      }
+    }, { passive: false });
+    logo.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+    card.appendChild(logo);
+  }
+
+
+  slot.appendChild(card);
+  return slot;
+}
+
+function buildTrack() {
+  track.innerHTML = '';
+  loadedSlots.clear();
+  track.appendChild(makeSlot('cover',      -1,        0));
+  track.appendChild(makeSlot('ghost-last', total - 1, 1));
+  for (let i = 0; i < total; i++) track.appendChild(makeSlot('numbered', i, i + 2));
+  track.appendChild(makeSlot('ghost-first', 0, total + 2));
+}
+
+// ── BUILD DOM — FAVOURITES TRACK ──────────────────────────────────────────
+// Layout: [ghost-last-fav] [fav0] [fav1] ... [favN] [ghost-first-fav]
+function makeFavSlot(realIndex, slotIndex) {
+  const slot = document.createElement('div');
+  slot.className = 'card-slot';
+
+  const card = document.createElement('div');
+  card.className = 'card dimmed' + (hasBack.has(realIndex) ? ' card-has-back' : '');
+  card.dataset.type = 'numbered';
+  card.dataset.real = realIndex;
+  card.id = `slot-${slotIndex}`;
+
+  const inner = document.createElement('div');
+  inner.className = 'card-inner';
+  const front = document.createElement('div');
+  front.className = 'card-face front';
+  const skel = document.createElement('div');
+  skel.className = 'card-skeleton';
+  front.appendChild(skel);
+  inner.appendChild(front);
+  let back = null;
+  if (hasBack.has(realIndex)) {
+    back = document.createElement('div');
+    back.className = 'card-face back';
+    const bs = document.createElement('div');
+    bs.className = 'card-skeleton';
+    back.appendChild(bs);
+    inner.appendChild(back);
+  }
+  card.appendChild(inner);
+
+  const badge = document.createElement('div');
+  badge.className = 'card-badge';
+  badge.textContent = `${realIndex + 1} / ${total}`;
+  card.appendChild(badge);
+
+  const bm = document.createElement('button');
+  bm.type = 'button';
+  bm.className = 'bookmark-btn saved';
+  bm.dataset.real = realIndex;
+  bm.textContent = '★';
+  bm.addEventListener('touchend', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFav(realIndex);
+    bm.classList.add('pop');
+    bm.addEventListener('animationend', () => bm.classList.remove('pop'), { once: true });
+  }, { passive: false });
+  bm.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+  card.appendChild(bm);
+
+  // Brand logo
+  const favLogo = document.createElement('img');
+  favLogo.className = 'card-logo';
+  favLogo.src = 'brand-logo.png';
+  favLogo.alt = 'Brand';
+    favLogo.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
+    favLogo.addEventListener('touchend', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shareUrl = window.DECK_URL || window.location.origin;
+      if (navigator.share) {
+        navigator.share({ url: shareUrl }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(shareUrl).catch(() => {});
+      }
+    }, { passive: false });
+    favLogo.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+  card.appendChild(favLogo);
+
+
+  slot.appendChild(card);
+  return slot;
+}
+
+function buildFavTrack() {
+  track.innerHTML = '';
+  loadedSlots.clear();
+  const n = favList.length;
+  // ghost of last fav
+  track.appendChild(makeFavSlot(favList[n - 1], 0));
+  // real favs
+  for (let i = 0; i < n; i++) track.appendChild(makeFavSlot(favList[i], i + 1));
+  // ghost of first fav
+  track.appendChild(makeFavSlot(favList[0], n + 1));
+  // Preload images for fav slots
+  preloadFavSlots();
+}
+
+function preloadFavSlots() {
+  for (let s = 0; s < slotCount(); s++) loadFavSlot(s);
+}
+
+function loadFavSlot(si) {
+  if (loadedSlots.has(si)) return;
+  loadedSlots.add(si);
+  const card = document.getElementById(`slot-${si}`);
+  if (!card) return;
+  const ri   = parseInt(card.dataset.real);
+  const front = card.querySelector('.card-face.front') || card;
+  const img = new Image();
+  img.alt = `Card ${ri + 1}`;
+  img.onload = () => img.classList.add('loaded');
+  img.src = `${IMAGE_FOLDER}card${ri + 1}${IMAGE_EXT}`;
+  front.insertBefore(img, front.firstChild);
+  if (hasBack.has(ri)) {
+    const back = card.querySelector('.card-face.back');
+    if (back) {
+      const bimg = new Image();
+      bimg.alt = `Card ${ri + 1} back`;
+      bimg.onload = () => bimg.classList.add('loaded');
+      bimg.src = `${IMAGE_FOLDER}card${ri + 1}b${IMAGE_EXT}`;
+      back.insertBefore(bimg, back.firstChild);
+    }
+  }
+}
+
+// ── LAZY IMAGES (normal mode) ─────────────────────────────────────────────
+function loadSlot(si) {
+  if (loadedSlots.has(si)) return;
+  loadedSlots.add(si);
+  const card = document.getElementById(`slot-${si}`);
+  if (!card) return;
+  const type = card.dataset.type;
+  const ri   = parseInt(card.dataset.real);
+
+  // Load front face image
+  let src;
+  if (type === 'cover') {
+    src = hasCover ? `${IMAGE_FOLDER}cover${IMAGE_EXT}` : `${IMAGE_FOLDER}card1${IMAGE_EXT}`;
+  } else {
+    src = `${IMAGE_FOLDER}card${ri + 1}${IMAGE_EXT}`;
+  }
+  const front = card.querySelector('.card-face.front') || card;
+  const img = new Image();
+  img.alt = type === 'cover' ? 'Cover' : `Card ${ri + 1}`;
+  img.onload = () => img.classList.add('loaded');
+  img.src = src;
+  front.insertBefore(img, front.firstChild);
+
+  // Load back face image if it exists
+  const loadBack = (type === 'numbered' && hasBack.has(ri)) ||
+                   (type === 'cover' && hasCoverBack);
+  if (loadBack) {
+    const back = card.querySelector('.card-face.back');
+    if (back) {
+      const bimg = new Image();
+      const backSrc = type === 'cover'
+        ? `${IMAGE_FOLDER}coverb${IMAGE_EXT}`
+        : `${IMAGE_FOLDER}card${ri + 1}b${IMAGE_EXT}`;
+      bimg.alt = type === 'cover' ? 'Cover back' : `Card ${ri + 1} back`;
+      bimg.onload = () => bimg.classList.add('loaded');
+      bimg.src = backSrc;
+      back.insertBefore(bimg, back.firstChild);
+    }
+  }
+}
+
+// ── FLIP ──────────────────────────────────────────────────────────────────
+
+
+let lastFlipTime = 0; // timestamp guard — ignore calls within 500ms of last flip
+
+function flipSlot(slotIndex) {
+  const now = Date.now();
+  if (now - lastFlipTime < 500) return;
+  lastFlipTime = now;
+
+  const card = document.getElementById(`slot-${slotIndex}`);
+  if (!card) return;
+  const inner = card.querySelector('.card-inner');
+  if (!inner) return;
+
+  const wasFlipped = flippedCards.has(slotIndex);
+
+  // Force clean state — cancel any in-progress animation instantly
+  inner.style.transition = 'none';
+  inner.style.transform  = 'scaleX(1)';
+
+  // Force reflow so the browser registers the reset before we animate
+  void inner.offsetWidth;
+
+  // Phase 1: scale to 0
+  inner.style.transition = 'transform 0.18s ease-in';
+  inner.style.transform  = 'scaleX(0)';
+
+  setTimeout(() => {
+    // Swap face at midpoint
+    if (wasFlipped) {
+      flippedCards.delete(slotIndex);
+      card.classList.remove('flipped');
+    } else {
+      flippedCards.add(slotIndex);
+      card.classList.add('flipped');
+    }
+    // Phase 2: scale back up
+    inner.style.transition = 'transform 0.18s ease-out';
+    inner.style.transform  = 'scaleX(1)';
+
+    setTimeout(() => {
+      inner.style.transition = '';
+      inner.style.transform  = '';
+    }, 200);
+  }, 190);
+}
+
+// Reset flip state when navigating away from a card
+function resetFlipForSlot(slotIndex) {
+  if (!flippedCards.has(slotIndex)) return;
+  flippedCards.delete(slotIndex);
+  const card = document.getElementById(`slot-${slotIndex}`);
+  if (!card) return;
+  const inner = card.querySelector('.card-inner');
+  card.classList.remove('flipped');
+  if (inner) {
+    inner.style.transition = '';
+    inner.style.transform  = '';
+  }
+}
+
+
+function preloadAround(si) {
+  for (let d = -PRELOAD_AHEAD; d <= PRELOAD_AHEAD; d++) {
+    const s = si + d;
+    if (s >= 0 && s < slotCount()) loadSlot(s);
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function updateCounter() {
+  if (favMode) {
+    const ri = favList[current];
+    counter.textContent = `${current + 1} / ${favList.length}`;
+  } else if (current === -1) {
+    counter.textContent = '';
+  } else {
+    counter.textContent = `${current + 1} / ${total}`;
+  }
+}
+
+function updateDimming() {
+  const ti = trackIndex();
+  for (let s = 0; s < slotCount(); s++) {
+    const c = document.getElementById(`slot-${s}`);
+    if (c) c.classList.toggle('dimmed', s !== ti);
+  }
+}
+
+function recentreIfNeeded() {
+  if (favMode) {
+    const n  = favList.length;
+    const ti = trackIndex();
+    if (ti === 0)     { current = n - 1; setX(-trackIndex() * viewport.offsetWidth); }
+    else if (ti===n+1){ current = 0;     setX(-trackIndex() * viewport.offsetWidth); }
+  } else {
+    const ti = trackIndex();
+    if (ti === 1)          { current = total - 1; setX(-trackIndex() * viewport.offsetWidth); }
+    else if (ti===total+2) { current = 0;         setX(-trackIndex() * viewport.offsetWidth); }
+  }
+}
+
+function goTo(idx, animate, cb) {
+  // Reset flip on the card we're leaving
+  resetFlipForSlot(trackIndex());
+
+  if (favMode) {
+    const n = favList.length;
+    current = ((idx % n) + n) % n;
+  } else {
+    current = idx === -1 ? -1 : ((idx % total) + total) % total;
+  }
+  updateCounter();
+  updateDimming();
+  if (!favMode) preloadAround(trackIndex());
+  if (animate) animateTo(snapX(), cb);
+  else {
+    if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
+    setX(snapX());
+    if (cb) cb();
+  }
+}
+
+// ── rAF ANIMATION ENGINE ──────────────────────────────────────────────────
+let rafHandle = null, rafFrom = 0, rafTo = 0, rafStart = null, rafCb = null;
+function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+function animateTo(toX, cb) {
+  if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
+  const fromX = getX();
+  if (Math.abs(fromX - toX) < 1) { setX(toX); if (cb) cb(); return; }
+  rafFrom = fromX; rafTo = toX; rafStart = null; rafCb = cb || null;
+  rafHandle = requestAnimationFrame(rafStep);
+}
+function rafStep(ts) {
+  if (!rafStart) rafStart = ts;
+  const t = Math.min((ts - rafStart) / SNAP_MS, 1);
+  setX(rafFrom + (rafTo - rafFrom) * easeOut(t));
+  if (t < 1) { rafHandle = requestAnimationFrame(rafStep); }
+  else { rafHandle = null; setX(rafTo); if (rafCb) { const f = rafCb; rafCb = null; f(); } }
+}
+function isAnimating() { return rafHandle !== null; }
+function setX(x)       { track.style.transform = `translateX(${x}px)`; }
+function getX() {
+  const m = (track.style.transform||'').match(/translateX\(([^p]+)px\)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+// ── TOUCH ─────────────────────────────────────────────────────────────────
+let t = { on:false, x0:0, y0:0, xl:0, locked:false, horiz:false, base:0, t0:0, tl:0 };
+
+document.addEventListener('touchstart', e => {
+  const x = e.touches[0].clientX;
+  if (x < 30 || x > window.innerWidth - 30) e.preventDefault();
+}, { passive: false, capture: true });
+
+viewport.addEventListener('touchstart', e => {
+  if (isAnimating()) { e.preventDefault(); return; }
+  const touch = e.touches[0];
+  t.on=true; t.x0=touch.clientX; t.y0=touch.clientY;
+  t.xl=touch.clientX; t.locked=false; t.horiz=false;
+  t.base=snapX();
+  t.t0=Date.now(); t.tl=Date.now();
+}, { passive: true });
+
+viewport.addEventListener('touchmove', e => {
+  if (!t.on) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - t.x0;
+  const dy = touch.clientY - t.y0;
+  if (!t.locked) {
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    t.horiz = Math.abs(dx) > Math.abs(dy);
+    t.locked = true;
+  }
+  if (!t.horiz) return;
+  e.preventDefault();
+  t.xl = touch.clientX;
+  t.tl = Date.now();
+  setX(t.base + dx);
+}, { passive: false });
+
+viewport.addEventListener('touchend', e => {
+  if (!t.on) return;
+  t.on = false;
+
+  // Tap detection — if barely moved, treat as a tap on the card
+  const totalDx = Math.abs(t.xl - t.x0);
+  const totalDy = Math.abs(e.changedTouches[0].clientY - t.y0);
+  if (totalDx < 8 && totalDy < 8) {
+    e.preventDefault(); // block ghost click
+    const ti = trackIndex();
+    const activeCard = document.getElementById(`slot-${ti}`);
+    if (activeCard && activeCard.classList.contains('card-has-back')) {
+      flipSlot(ti);
+    }
+    return;
+  }
+
+  if (!t.horiz) return;
+
+  const dx       = t.xl - t.x0;
+  const dt       = Math.max(Date.now() - t.tl, 1); // ms since last move
+  const velocity = Math.abs(dx) / Math.max(Date.now() - t.t0, 1); // px/ms
+
+  // A fast flick (>0.3px/ms) always advances regardless of distance
+  // A slow drag still needs to cross the 20% threshold
+  const isFlick   = velocity > 0.3 && dt < 150;
+  const threshold = viewport.offsetWidth * 0.2;
+  const goLeft    = dx < -threshold || (isFlick && dx < 0);
+  const goRight   = dx >  threshold || (isFlick && dx > 0);
+
+  let next = current;
+  if (favMode) {
+    if      (goLeft)  next = current + 1;
+    else if (goRight) next = current - 1;
+  } else {
+    if      (goLeft)  next = current === -1 ? 0 : current + 1;
+    else if (goRight) next = current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
+  }
+  goTo(next, true, recentreIfNeeded);
+}, { passive: false });
+
+viewport.addEventListener('touchcancel', () => {
+  if (!t.on) return;
+  t.on = false;
+  goTo(current, true);
+}, { passive: true });
+
+// ── MOUSE ─────────────────────────────────────────────────────────────────
+let ms = { down:false, x0:0, xl:0, base:0, t0:0, tl:0 };
+viewport.addEventListener('mousedown', e => {
+  if (isAnimating()) return;
+  ms.down=true; ms.x0=e.clientX; ms.xl=e.clientX; ms.base=snapX();
+  ms.t0=Date.now(); ms.tl=Date.now();
+});
+window.addEventListener('mousemove', e => {
+  if (!ms.down) return;
+  ms.xl=e.clientX; ms.tl=Date.now();
+  setX(ms.base + (e.clientX - ms.x0));
+});
+window.addEventListener('mouseup', () => {
+  if (!ms.down) return;
+  ms.down=false;
+  const dx       = ms.xl - ms.x0;
+  const dt       = Math.max(Date.now() - ms.tl, 1);
+  const velocity = Math.abs(dx) / Math.max(Date.now() - ms.t0, 1);
+  const isFlick  = velocity > 0.3 && dt < 150;
+  const threshold = viewport.offsetWidth * 0.2;
+  const goLeft   = dx < -threshold || (isFlick && dx < 0);
+  const goRight  = dx >  threshold || (isFlick && dx > 0);
+  let next = current;
+  if (favMode) {
+    if      (goLeft)  next = current + 1;
+    else if (goRight) next = current - 1;
+  } else {
+    if      (goLeft)  next = current === -1 ? 0 : current + 1;
+    else if (goRight) next = current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
+  }
+  goTo(next, true, recentreIfNeeded);
+});
+
+// ── BUTTONS ───────────────────────────────────────────────────────────────
+btnRandom.addEventListener('click', e => {
+  e.preventDefault(); e.stopPropagation();
+  if (isAnimating() || total <= 1) return;
+  let r;
+  do { r = Math.floor(Math.random() * total); } while (r === current);
+  goTo(r, true);
+});
+
+btnFavs.addEventListener('click', e => {
+  e.preventDefault(); e.stopPropagation();
+  if (isAnimating()) return;
+  enterFavMode();
+});
+
+btnExitFavs.addEventListener('click', e => {
+  e.preventDefault(); e.stopPropagation();
+  exitFavMode();
+});
+
+// ── BACK BUTTON ──────────────────────────────────────────────────────────
+const btnBack = document.getElementById('btnBack');
+
+// Show back button only when opened from hub (?fromHub=1)
+if (new URLSearchParams(window.location.search).has('fromHub')) {
+  btnBack.classList.add('visible');
+}
+
+btnBack.addEventListener('click', () => {
+  // Go back to hub — one level up
+  window.location.href = '../index.html';
+});
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (isAnimating()) return;
+  if (e.key === 'Escape' && favMode) { exitFavMode(); return; }
+  if (e.key === 'ArrowRight') {
+    const next = favMode ? current + 1 : current === -1 ? 0 : current + 1;
+    goTo(next, true, recentreIfNeeded);
+  }
+  if (e.key === 'ArrowLeft') {
+    const next = favMode ? current - 1 : current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
+    goTo(next, true, recentreIfNeeded);
+  }
+});
+
+// ── RESIZE ────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { if (!isAnimating()) setX(snapX()); });
+
+
+// ── CONFIG LOADER ─────────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const res = await fetch('config.json');
+    if (!res.ok) throw new Error();
+    const cfg = await res.json();
+    const title   = cfg.title   || 'Cards';
+    const version = cfg.version ? ` (${cfg.version})` : '';
+    const byline  = cfg.byline  ? ` ${cfg.byline} ` : ' by ';
+    const brand   = cfg.brandName || '';
+    const url     = cfg.brandUrl  || '';
+    window.DECK_URL = cfg.deckUrl || window.location.origin;
+    document.title = title;
+    if (url && brand) {
+      headerTitle.innerHTML = `${title}${version}${byline}<a href="${url}" target="_blank" rel="noopener noreferrer">${brand}</a>`;
+    } else if (brand) {
+      headerTitle.textContent = `${title}${version}${byline}${brand}`;
+    } else {
+      headerTitle.textContent = `${title}${version}`;
+    }
+  } catch {
+    headerTitle.textContent = 'Cards';
+    window.DECK_URL = window.location.origin;
+  }
+}
+
+
+// ── SERVICE WORKER ───────────────────────────────────────────────────────
+// ── SERVICE WORKER ───────────────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  // Unregister ALL existing service workers first, then register fresh
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    Promise.all(regs.map(r => r.unregister())).then(() => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  });
+}
+
+// ── ORIENTATION LOCK (PWA only) ───────────────────────────────────────────
+// Works when installed to home screen; silently ignored in browser
+async function tryLockOrientation() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("portrait");
+    }
+  } catch {}
+}
+tryLockOrientation();
+
+// ── INSTALL PROMPT ────────────────────────────────────────────────────────
+const INSTALL_KEY    = "vc_install_dismissed";
+const installPrompt  = document.getElementById("installPrompt");
+const installClose   = document.getElementById("installClose");
+
+function showInstallPrompt() {
+  try { if (localStorage.getItem(INSTALL_KEY)) return; } catch {}
+  // Only show on iOS Safari (not already installed, not Android which has its own banner)
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  if (!isIOS || isStandalone) return;
+  setTimeout(() => installPrompt.classList.remove("hidden"), 3000);
+}
+
+installClose.addEventListener("click", () => {
+  installPrompt.classList.add("hidden");
+  try { localStorage.setItem(INSTALL_KEY, "1"); } catch {}
+});
+// ── INIT ──────────────────────────────────────────────────────────────────
+(async () => {
+  await loadConfig();
+  loadingText.textContent = 'Finding cards…';
+  // Trigger bottom-to-top reveal of loader icon
+  const loaderIcon = document.getElementById('loaderIcon');
+  requestAnimationFrame(() => requestAnimationFrame(() => loaderIcon.classList.add('reveal')));
+
+  total = await discoverCards();
+
+  if (total === 0) {
+    loadingScreen.style.display = 'none';
+    errorMsg.classList.add('visible');
+    return;
+  }
+
+  loadingText.textContent = `${total} cards found`;
+
+  buildTrack();
+
+  // Deep link — ?card=N jumps directly to that card
+  const urlParams = new URLSearchParams(window.location.search);
+  const deepCard  = parseInt(urlParams.get('card'));
+  current = (deepCard >= 1 && deepCard <= total) ? deepCard - 1 : -1;
+
+  setX(snapX());
+  updateCounter();
+  updateDimming();
+  preloadAround(trackIndex());
+  updateFavUI(); // reflect any saved favourites from previous session
+
+  setTimeout(() => {
+    loadingScreen.style.opacity = '0';
+    loadingScreen.style.transition = 'opacity 0.4s';
+    setTimeout(() => {
+      loadingScreen.style.display = 'none';
+      showInstallPrompt();
+    }, 400);
+  }, 250);
+})();
+</script>
+
+
+</body>
+</html>
