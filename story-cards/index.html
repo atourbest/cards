@@ -284,35 +284,14 @@
     background: linear-gradient(to top, rgba(26,26,26,1) 55%, transparent);
   }
 
-  /* Normal mode: back + dice + star */
-  .btn-normal { display: flex; gap: 12px; width: 100%; max-width: 300px; align-items: center; }
+  /* Normal mode: two equal buttons */
+  .btn-normal { display: flex; gap: 12px; width: 100%; max-width: 300px; }
   .btn-fav-mode { display: none; width: 100%; max-width: 300px; }
   body.fav-mode .btn-normal   { display: none; }
   body.fav-mode .btn-fav-mode { display: flex; }
 
-  /* Back button — only shown when fromHub=1 in URL */
-  .btn-back {
-    flex: 0 0 44px;
-    height: 48px;
-    border-radius: 8px;
-    border: 1.5px solid rgba(255,255,255,0.35);
-    background: transparent;
-    color: #fff;
-    display: none; /* hidden by default, shown via JS */
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
-  }
-  .btn-back.visible { display: flex; }
-  .btn-back:active { opacity: 0.5; }
-  .btn-back svg { display: block; }
-
   .btn {
     flex: 1;
-    min-width: 0;
     height: 48px;
     border-radius: 8px;
     border: none;
@@ -517,9 +496,6 @@
 <div class="btn-bar">
   <!-- Normal mode -->
   <div class="btn-normal">
-    <button type="button" class="btn-back" id="btnBack" title="Back to decks">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
     <button type="button" class="btn btn-dice" id="btnRandom" title="Surprise me">🎲</button>
     <button type="button" class="btn btn-star" id="btnFavs" title="View favourites">
       ⭐
@@ -1279,19 +1255,6 @@ btnExitFavs.addEventListener('click', e => {
   exitFavMode();
 });
 
-// ── BACK BUTTON ──────────────────────────────────────────────────────────
-const btnBack = document.getElementById('btnBack');
-
-// Show back button only when opened from hub (?fromHub=1)
-if (new URLSearchParams(window.location.search).has('fromHub')) {
-  btnBack.classList.add('visible');
-}
-
-btnBack.addEventListener('click', () => {
-  // Go back to hub — one level up
-  window.location.href = '../index.html';
-});
-
 // ── KEYBOARD ──────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (isAnimating()) return;
@@ -1331,7 +1294,7 @@ async function loadConfig() {
       headerTitle.textContent = `${title}${version}`;
     }
   } catch {
-    headerTitle.textContent = 'Cards';
+    headerTitle.innerHTML = 'AT OUR BEST Cards by <a href="https://www.linkedin.com/company/atourbest/" target="_blank" rel="noopener noreferrer">AT OUR BEST Lab</a>';
     window.DECK_URL = window.location.origin;
   }
 }
