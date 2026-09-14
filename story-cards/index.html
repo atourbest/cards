@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Story Eggs</title>
+<title>AT OUR BEST Cards</title>
 <meta name="theme-color" content="#e31e54">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-title" content="Values Cards">
+<meta name="apple-mobile-web-app-title" content="AT OUR BEST Cards">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -545,7 +545,11 @@ const IMAGE_EXT     = '.png';
 const MAX_CARDS     = 200;
 const PRELOAD_AHEAD = 3;
 const SNAP_MS       = 320;
-const FAV_KEY       = 'vc_favourites';   // localStorage key for favourites
+// Derive unique favourites key from URL folder name — available immediately
+// e.g. /story-cards/index.html -> key = "vc_favs_story-cards"
+// Falls back to generic key for root-level deployments
+const _deckFolder = window.location.pathname.split('/').filter(Boolean).slice(-2, -1)[0] || 'default';
+let FAV_KEY = 'vc_favs_' + _deckFolder;
 
 // ── ELEMENTS ──────────────────────────────────────────────────────────────
 const viewport    = document.getElementById('viewport');
