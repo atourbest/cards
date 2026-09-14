@@ -1,5 +1,6 @@
 [
   { "folder": "story-cards",      "title": "Story Cards" },
   { "folder": "confidence-cards",  "title": "Confidence Cards" },
+  { "folder": "fast-cards",  "title": "Fast Forward Cards" },
   { "folder": "check-in-cards",    "title": "Check-In Cards" }
 ]
