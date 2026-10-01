@@ -4,8 +4,14 @@
   "brandName": "AT OUR BEST Lab",
   "brandUrl": "https://www.linkedin.com/company/atourbest/",
   "deckUrl": "https://aobcards.netlify.app/values-cards",
+  "accentColor": "#e31e54",
   "leadMagnet": true,
   "sendfoxListId": 677102,
   "leadMagnetHeadline": "Unlock the full deck",
-  "leadMagnetSubtext": "Enter your email to access all 99 cards + receive our free mini course on finding and living your values."
+  "leadMagnetBtnText": "Unlock All 99 Cards",
+  "leadMagnetBenefits": [
+    "All 99 Values Cards unlocked instantly",
+    "Free mini course on finding and living your values",
+    "New decks from AT OUR BEST Lab when they launch"
+  ]
 }

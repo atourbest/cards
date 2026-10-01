@@ -426,22 +426,53 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    padding-bottom: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
   #emailGate.visible { display: flex; }
+
+  /* Peeking cover card above the sheet */
+  .email-gate-peek {
+    width: 72%;
+    max-width: 260px;
+    aspect-ratio: 600 / 940;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: -20px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .email-gate-peek img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* Lock icon overlay on peeking card */
+  .email-gate-peek::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.35);
+    border-radius: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 40px 40px;
+  }
 
   .email-gate-sheet {
     width: 100%;
     background: #1c1c1e;
-    border-radius: 20px 20px 0 0;
-    padding: 32px 28px 48px;
+    border-radius: 24px 24px 0 0;
+    padding: 28px 28px 52px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    animation: sheetUp 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    gap: 0;
+    animation: sheetUp 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    position: relative;
+    z-index: 1;
   }
   @keyframes sheetUp {
     from { transform: translateY(100%); }
@@ -449,38 +480,78 @@
   }
   .email-gate-handle {
     width: 36px; height: 4px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.15);
     border-radius: 2px;
     align-self: center;
-    margin-bottom: 8px;
+    margin-bottom: 22px;
   }
+
+  /* Brand icon + headline row */
+  .email-gate-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .email-gate-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .email-gate-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
   .email-gate-headline {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #fff;
-    line-height: 1.3;
+    line-height: 1.25;
   }
-  .email-gate-subtext {
+
+  /* Benefits checklist */
+  .email-gate-benefits {
+    list-style: none;
+    margin: 14px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .email-gate-benefits li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     font-size: 0.88rem;
-    color: rgba(255,255,255,0.6);
-    line-height: 1.5;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.4;
   }
+  .email-gate-benefits li::before {
+    content: '';
+    display: block;
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e31e54' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
   .email-gate-input {
     width: 100%;
     height: 52px;
     border-radius: 10px;
     border: 1.5px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.07);
     color: #fff;
     font-family: inherit;
     font-size: 1rem;
     padding: 0 16px;
     outline: none;
     -webkit-appearance: none;
-    margin-top: 4px;
+    margin-bottom: 12px;
   }
   .email-gate-input::placeholder { color: rgba(255,255,255,0.3); }
   .email-gate-input:focus { border-color: rgba(255,255,255,0.4); }
+
   .email-gate-submit {
     width: 100%;
     height: 52px;
@@ -489,12 +560,11 @@
     background: #e31e54;
     color: #fff;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    box-shadow: 0 4px 18px rgba(227,30,84,0.4);
+    box-shadow: 0 4px 20px rgba(227,30,84,0.45);
     -webkit-tap-highlight-color: transparent;
     transition: opacity 0.2s;
   }
@@ -504,19 +574,62 @@
     font-size: 0.8rem;
     color: #ff6b6b;
     display: none;
-    margin-top: -8px;
+    margin-top: -6px;
+    margin-bottom: 8px;
   }
   .email-gate-error.visible { display: block; }
+  .email-gate-privacy {
+    text-align: center;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.3);
+    margin-top: 10px;
+  }
+
+  /* GDPR consent checkbox */
+  .email-gate-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .email-gate-consent input[type="checkbox"] {
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    accent-color: #e31e54;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .email-gate-consent label {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.45;
+    cursor: pointer;
+  }
+  .email-gate-consent label a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: underline;
+  }
+  .email-gate-consent-error {
+    font-size: 0.78rem;
+    color: #ff6b6b;
+    display: none;
+    margin-top: -10px;
+    margin-bottom: 8px;
+  }
+  .email-gate-consent-error.visible { display: block; }
+
   .email-gate-success {
     text-align: center;
     color: rgba(255,255,255,0.8);
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: 0.92rem;
+    line-height: 1.65;
     display: none;
-    padding: 16px 0;
+    padding: 20px 0 8px;
   }
   .email-gate-success.visible { display: block; }
-  .email-gate-success strong { color: #fff; display: block; font-size: 1.1rem; margin-bottom: 8px; }
+  .email-gate-success .success-icon { font-size: 2.4rem; display: block; margin-bottom: 10px; }
+  .email-gate-success strong { color: #fff; display: block; font-size: 1.15rem; margin-bottom: 8px; }
 
   /* ── ROTATE PROMPT — shown in landscape ── */
   #rotatePrompt {
@@ -617,18 +730,39 @@
 
 <!-- Email gate — shown on card 2 for lead magnet decks -->
 <div id="emailGate">
+  <!-- Peeking cover card -->
+  <div class="email-gate-peek" id="gatePeek">
+    <img id="gatePeekImg" src="images/cover.png" alt="Card deck preview">
+  </div>
+
   <div class="email-gate-sheet">
     <div class="email-gate-handle"></div>
     <div id="emailGateForm">
-      <div class="email-gate-headline" id="gateHeadline">Unlock the full deck</div>
-      <div class="email-gate-subtext" id="gateSubtext">Enter your email to access all the cards + receive our free mini course.</div>
+      <div class="email-gate-header">
+        <div class="email-gate-icon">
+          <img src="loader-icon.png" alt="AT OUR BEST Lab">
+        </div>
+        <div class="email-gate-headline" id="gateHeadline">Unlock the full deck</div>
+      </div>
+      <ul class="email-gate-benefits" id="gateBenefits">
+        <li>All cards unlocked instantly</li>
+        <li>Free mini course delivered to your inbox</li>
+        <li>New decks when they launch</li>
+      </ul>
       <input type="email" class="email-gate-input" id="gateEmail" placeholder="your@email.com" autocomplete="email" inputmode="email">
       <div class="email-gate-error" id="gateError">Please enter a valid email address.</div>
+      <div class="email-gate-consent">
+        <input type="checkbox" id="gateConsent">
+        <label for="gateConsent">I agree to receive emails from AT OUR BEST Lab. You can unsubscribe at any time. View our <a href="https://www.linkedin.com/company/atourbest/" target="_blank">privacy policy</a>.</label>
+      </div>
+      <div class="email-gate-consent-error" id="gateConsentError">Please tick the box to continue.</div>
       <button type="button" class="email-gate-submit" id="gateSubmit">Unlock Now</button>
+      <p class="email-gate-privacy">No spam. Unsubscribe any time.</p>
     </div>
     <div class="email-gate-success" id="gateSuccess">
-      <strong>You're in! 🎉</strong>
-      Check your inbox — your mini course is on its way. The full deck is now unlocked.
+      <span class="success-icon">🎉</span>
+      <strong>You're in!</strong>
+      Check your inbox — your mini course is on its way. Enjoy the full deck.
     </div>
   </div>
 </div>
@@ -1399,6 +1533,13 @@ document.getElementById('gateSubmit').addEventListener('click', async () => {
   const submitBtn = document.getElementById('gateSubmit');
 
   errEl.classList.remove('visible');
+  document.getElementById('gateConsentError').classList.remove('visible');
+
+  const consentEl = document.getElementById('gateConsent');
+  if (!consentEl.checked) {
+    document.getElementById('gateConsentError').classList.add('visible');
+    return;
+  }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -1497,10 +1638,28 @@ async function loadConfig() {
       gateConfig = {
         listId:   cfg.sendfoxListId,
         headline: cfg.leadMagnetHeadline || 'Unlock the full deck',
-        subtext:  cfg.leadMagnetSubtext  || 'Enter your email to access all the cards.'
+        benefits: cfg.leadMagnetBenefits || [
+          'All cards unlocked instantly',
+          'Free mini course delivered to your inbox',
+          'New decks when they launch'
+        ],
+        btnText:  cfg.leadMagnetBtnText  || 'Unlock Now'
       };
       document.getElementById('gateHeadline').textContent = gateConfig.headline;
-      document.getElementById('gateSubtext').textContent  = gateConfig.subtext;
+      document.getElementById('gateSubmit').textContent   = gateConfig.btnText;
+
+      // Populate benefits list
+      const ul = document.getElementById('gateBenefits');
+      if (ul && gateConfig.benefits.length) {
+        ul.innerHTML = gateConfig.benefits.map(b => `<li>${b}</li>`).join('');
+      }
+
+      // Use deck accent colour for submit button if available
+      if (cfg.accentColor) {
+        const btn = document.getElementById('gateSubmit');
+        btn.style.background = cfg.accentColor;
+        btn.style.boxShadow = `0 4px 20px ${cfg.accentColor}66`;
+      }
     }
     document.title = title;
     if (url && brand) {
