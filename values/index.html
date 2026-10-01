@@ -666,7 +666,11 @@ const SNAP_MS       = 320;
 // Derive unique favourites key from URL folder name — available immediately
 // e.g. /story-cards/index.html -> key = "vc_favs_story-cards"
 // Falls back to generic key for root-level deployments
-const _deckFolder = window.location.pathname.split('/').filter(Boolean).slice(-2, -1)[0] || 'default';
+// Get deck folder from URL — try second-to-last segment first, then last
+const _pathParts  = window.location.pathname.split('/').filter(Boolean);
+const _deckFolder = _pathParts.length >= 2
+  ? _pathParts[_pathParts.length - 2]   // e.g. /values-cards/index.html -> values-cards
+  : _pathParts[0] || 'default';          // fallback to first segment or default
 let FAV_KEY = 'vc_favs_' + _deckFolder;
 
 // ── ELEMENTS ──────────────────────────────────────────────────────────────
@@ -1202,13 +1206,12 @@ function goTo(idx, animate, cb) {
   resetFlipForSlot(trackIndex());
 
   // Show email gate when user reaches first numbered card
-  if (!isUnlocked() && !favMode) {
+  if (!isUnlocked() && !favMode && gateConfig) {
     const targetIdx = idx === -1 ? -1 : ((idx % total) + total) % total;
     if (targetIdx === 0) {
-      // Slight delay to let animation complete and ensure gateConfig is loaded
-      setTimeout(() => {
-        if (gateConfig && !isUnlocked()) showGate();
-      }, 400);
+      // Show gate and prevent navigation completing
+      setTimeout(() => showGate(), 350);
+      return; // don't navigate — stay on cover
     }
   }
 
