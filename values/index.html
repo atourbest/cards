@@ -1204,7 +1204,7 @@ function goTo(idx, animate, cb) {
   // Show email gate when user reaches card 2 (index 1)
   if (gateConfig && !isUnlocked() && !favMode) {
     const targetIdx = idx === -1 ? -1 : ((idx % total) + total) % total;
-    if (targetIdx === 1) showGate();
+    if (targetIdx === 0) showGate();
   }
 
   if (favMode) {
