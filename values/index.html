@@ -1325,12 +1325,10 @@ viewport.addEventListener('touchend', e => {
   }
   goTo(next, true, recentreIfNeeded);
 
-  // Show gate after first swipe from cover to card 1
-  if (gateConfig && !isUnlocked() && !favMode && next !== -1) {
+  // Show install prompt on first swipe to card 1 (non-lead-magnet decks)
+  if (!gateConfig && next !== -1) {
     const landingIdx = ((next % total) + total) % total;
-    if (landingIdx === 0) {
-      setTimeout(showGate, 380); // after snap animation
-    }
+    if (landingIdx === 0) setTimeout(showInstallPrompt, 500);
   }
 }, { passive: false });
 
@@ -1424,7 +1422,11 @@ document.getElementById('gateSubmit').addEventListener('click', async () => {
       unlockDeck();
       document.getElementById('emailGateForm').style.display = 'none';
       document.getElementById('gateSuccess').classList.add('visible');
-      setTimeout(dismissGate, 2800);
+      setTimeout(() => {
+        dismissGate();
+        // Show install prompt after gate closes
+        setTimeout(showInstallPrompt, 1000);
+      }, 2800);
     } else {
       errEl.textContent = data.error || 'Something went wrong. Please try again.';
       errEl.classList.add('visible');
@@ -1591,7 +1593,10 @@ installClose.addEventListener("click", () => {
     loadingScreen.style.transition = 'opacity 0.4s';
     setTimeout(() => {
       loadingScreen.style.display = 'none';
-      showInstallPrompt();
+      // Show email gate on load if this is a lead magnet deck
+      if (gateConfig && !isUnlocked()) {
+        setTimeout(showGate, 600);
+      }
     }, 400);
   }, 250);
 })();
