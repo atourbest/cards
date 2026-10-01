@@ -1368,6 +1368,72 @@ window.addEventListener('mouseup', () => {
   goTo(next, true, recentreIfNeeded);
 });
 
+// ── EMAIL GATE ────────────────────────────────────────────────────────────
+const GATE_KEY = 'vc_unlocked_' + _deckFolder;
+
+function isUnlocked() {
+  try { return !!localStorage.getItem(GATE_KEY); } catch { return false; }
+}
+
+function unlockDeck() {
+  try { localStorage.setItem(GATE_KEY, '1'); } catch {}
+}
+
+function showGate() {
+  if (!gateConfig || isUnlocked() || gateShown) return;
+  gateShown = true;
+  document.getElementById('emailGate').classList.add('visible');
+  setTimeout(() => document.getElementById('gateEmail').focus(), 400);
+}
+
+function dismissGate() {
+  document.getElementById('emailGate').classList.remove('visible');
+}
+
+document.getElementById('gateSubmit').addEventListener('click', async () => {
+  const email     = document.getElementById('gateEmail').value.trim();
+  const errEl     = document.getElementById('gateError');
+  const submitBtn = document.getElementById('gateSubmit');
+
+  errEl.classList.remove('visible');
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.classList.add('visible');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending\u2026';
+
+  try {
+    const res  = await fetch('/.netlify/functions/subscribe', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, listId: gateConfig.listId })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      unlockDeck();
+      document.getElementById('emailGateForm').style.display = 'none';
+      document.getElementById('gateSuccess').classList.add('visible');
+      setTimeout(dismissGate, 2800);
+    } else {
+      errEl.textContent = data.error || 'Something went wrong. Please try again.';
+      errEl.classList.add('visible');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Unlock Now';
+    }
+  } catch {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.classList.add('visible');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Unlock Now';
+  }
+});
+
 // ── BUTTONS ───────────────────────────────────────────────────────────────
 btnRandom.addEventListener('click', e => {
   e.preventDefault(); e.stopPropagation();
