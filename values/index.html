@@ -692,6 +692,8 @@ let total      = 0;
 let current    = 0;   // -1 = cover, 0..total-1 = numbered cards
 let hasCover     = false;
 let hasCoverBack = false;
+let gateConfig   = null;  // set from config.json if leadMagnet: true
+let gateShown    = false;
 let hasBack      = new Set(); // real indices that have a back image (cardNb.png)
 let favMode    = false;  // are we in favourites view?
 let flippedCards = new Set(); // slot indices currently showing their back face
