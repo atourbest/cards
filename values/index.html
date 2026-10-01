@@ -431,11 +431,12 @@
     -webkit-backdrop-filter: blur(6px);
   }
   #emailGate.visible { display: flex; }
+  #emailGate:not(.visible) { pointer-events: none; }
 
   /* Peeking cover card above the sheet */
   .email-gate-peek {
-    width: 72%;
-    max-width: 260px;
+    width: 36%;
+    max-width: 130px;
     aspect-ratio: 600 / 940;
     border-radius: 14px;
     overflow: hidden;
@@ -499,7 +500,7 @@
     overflow: hidden;
     flex-shrink: 0;
   }
-  .email-gate-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .email-gate-icon img { width: 100%; height: 100%; object-fit: contain; display: block; background: #111; }
 
   .email-gate-headline {
     font-size: 1.25rem;
@@ -560,7 +561,7 @@
     background: #e31e54;
     color: #fff;
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     cursor: pointer;
@@ -581,7 +582,7 @@
   .email-gate-privacy {
     text-align: center;
     font-size: 0.72rem;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.6);
     margin-top: 10px;
   }
 
@@ -1042,7 +1043,7 @@ function makeSlot(type, realIndex, slotIndex) {
   }
 
   // Brand logo — bottom left — links to deck URL from config
-  if (type !== 'ghost-last' && type !== 'ghost-first') {
+  if (type !== 'ghost-last' && type !== 'ghost-first' && type !== 'cover') {
     const logo = document.createElement('img');
     logo.className = 'card-logo';
     logo.src = 'brand-logo.png';
@@ -1519,12 +1520,16 @@ function unlockDeck() {
 function showGate() {
   if (!gateConfig || isUnlocked() || gateShown) return;
   gateShown = true;
-  document.getElementById('emailGate').classList.add('visible');
+  const gate = document.getElementById('emailGate');
+  gate.style.display = ''; // reset any inline display:none
+  gate.classList.add('visible');
   setTimeout(() => document.getElementById('gateEmail').focus(), 400);
 }
 
 function dismissGate() {
-  document.getElementById('emailGate').classList.remove('visible');
+  const gate = document.getElementById('emailGate');
+  gate.classList.remove('visible');
+  gate.style.display = 'none'; // fully remove from interaction
 }
 
 document.getElementById('gateSubmit').addEventListener('click', async () => {
