@@ -1207,15 +1207,7 @@ function goTo(idx, animate, cb) {
   // Reset flip on the card we're leaving
   resetFlipForSlot(trackIndex());
 
-  // Show email gate when user reaches first numbered card
-  if (!isUnlocked() && !favMode && gateConfig) {
-    const targetIdx = idx === -1 ? -1 : ((idx % total) + total) % total;
-    if (targetIdx === 0) {
-      // Show gate and prevent navigation completing
-      setTimeout(() => showGate(), 350);
-      return; // don't navigate — stay on cover
-    }
-  }
+
 
   if (favMode) {
     const n = favList.length;
@@ -1332,6 +1324,14 @@ viewport.addEventListener('touchend', e => {
     else if (goRight) next = current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
   }
   goTo(next, true, recentreIfNeeded);
+
+  // Show gate after first swipe from cover to card 1
+  if (gateConfig && !isUnlocked() && !favMode && next !== -1) {
+    const landingIdx = ((next % total) + total) % total;
+    if (landingIdx === 0) {
+      setTimeout(showGate, 380); // after snap animation
+    }
+  }
 }, { passive: false });
 
 viewport.addEventListener('touchcancel', () => {
