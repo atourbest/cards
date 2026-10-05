@@ -1827,6 +1827,11 @@ async function loadConfig() {
     window.DECK_URL = cfg.deckUrl || window.location.origin;
     window.REMEMBER_POSITION = !!cfg.rememberPosition;
     if (cfg.accentColor) window.ACCENT_COLOR = cfg.accentColor;
+    // Update button label for reflection decks
+    if (window.REMEMBER_POSITION) {
+      const btn = document.getElementById('btnRandom');
+      if (btn) { btn.textContent = '⏩'; btn.title = 'Skip to next section'; }
+    }
 
     // Lead magnet gate config
     if (cfg.leadMagnet && cfg.sendfoxListId) {
