@@ -188,26 +188,7 @@
   }
   .card-has-back:not(.dimmed)::after { opacity: 0.85; }
 
-  /* Brand logo overlay — bottom left */
-  .card-logo {
-    position: absolute;
-    bottom: 10px; left: 10px;
-    width: 56px !important;
-    height: 56px !important;
-    max-width: 56px !important;
-    max-height: 56px !important;
-    object-fit: contain;
-    pointer-events: auto;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.25s;
-    z-index: 10;
-    -webkit-tap-highlight-color: transparent;
-    display: block;
-    overflow: hidden;
-  }
-  .card:not(.dimmed) .card-logo { opacity: 0.75; }
-  .card-logo:active { opacity: 0.4; }
+
 
 
 
@@ -299,21 +280,24 @@
 
 
   /* ── BUTTON BAR ── */
-  /* ── PROGRESS BAR ── */
+  /* ── PROGRESS BAR — sits inside card area, bottom of viewport ── */
   .progress-bar-wrap {
     position: fixed;
-    bottom: var(--btn-h);
-    left: 0; right: 0;
+    bottom: calc(var(--btn-h) + 10px);
+    left: calc(var(--sliver) + var(--gap) + 10px);
+    right: calc(var(--sliver) + var(--gap) + 10px);
     height: 3px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
     z-index: 21;
-    display: none; /* shown only when rememberPosition is true */
+    display: none;
   }
   .progress-bar-wrap.visible { display: block; }
   .progress-bar-fill {
     height: 100%;
     background: #e31e54;
-    border-radius: 0 2px 2px 0;
+    border-radius: 2px;
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: 0%;
   }
@@ -1107,26 +1091,7 @@ function makeSlot(type, realIndex, slotIndex) {
     card.appendChild(bm);
   }
 
-  // Brand logo — bottom left — links to deck URL from config
-  if (type !== 'ghost-last' && type !== 'ghost-first' && type !== 'cover') {
-    const logo = document.createElement('img');
-    logo.className = 'card-logo';
-    logo.src = 'brand-logo.png';
-    logo.alt = 'Brand';
-    logo.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    logo.addEventListener('touchend', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const shareUrl = window.DECK_URL || window.location.origin;
-      if (navigator.share) {
-        navigator.share({ url: shareUrl }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).catch(() => {});
-      }
-    }, { passive: false });
-    logo.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
-    card.appendChild(logo);
-  }
+
 
 
   // Audio button — only on numbered cards with audio
