@@ -283,7 +283,7 @@
   /* ── PROGRESS BAR — sits inside card area, bottom of viewport ── */
   .progress-bar-wrap {
     position: fixed;
-    bottom: calc(var(--btn-h) + 10px);
+    bottom: calc(var(--btn-h) + 15px);
     left: calc(var(--sliver) + var(--gap) + 10px);
     right: calc(var(--sliver) + var(--gap) + 10px);
     height: 3px;
@@ -1723,16 +1723,17 @@ btnRandom.addEventListener('click', e => {
   // If rememberPosition deck — skip to next section (multiples of 10)
   if (window.REMEMBER_POSITION) {
     if (current === -1) { goTo(0, true); return; }
-    // Find next section header (card index at multiple of 10, 0-based: 9,19,29...)
-    // Section headers are card10, card20 etc = index 9, 19, 29...
-    const sectionIndices = [];
-    for (let i = 9; i < total; i += 10) sectionIndices.push(i);
-    const next = sectionIndices.find(s => s > current);
+    // Find next section header — card whose number is a multiple of 10
+    // Uses cardNums[] to handle sparse decks correctly
+    const sectionIndices = cardNums
+      .map((n, i) => ({ n, i }))
+      .filter(({ n }) => n % 10 === 0)
+      .map(({ i }) => i);
+    const next = sectionIndices.find(i => i > current);
     if (next !== undefined) {
       goTo(next, true);
     } else {
-      // Past last section — go back to cover
-      goTo(-1, true);
+      goTo(-1, true); // past last section — back to cover
     }
     return;
   }
