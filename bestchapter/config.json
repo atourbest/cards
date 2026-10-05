@@ -4,6 +4,7 @@
   "brandName": "AT OUR BEST Lab",
   "brandUrl": "https://www.linkedin.com/company/atourbest/",
   "accentColor": "#e31e54",
+  "rememberPosition": true,
   "leadMagnet": true,
   "sendfoxListId": 677539,
   "leadMagnetHeadline": "Unlock the full deck",
