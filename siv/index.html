@@ -188,26 +188,7 @@
   }
   .card-has-back:not(.dimmed)::after { opacity: 0.85; }
 
-  /* Brand logo overlay — bottom left */
-  .card-logo {
-    position: absolute;
-    bottom: 10px; left: 10px;
-    width: 56px !important;
-    height: 56px !important;
-    max-width: 56px !important;
-    max-height: 56px !important;
-    object-fit: contain;
-    pointer-events: auto;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.25s;
-    z-index: 10;
-    -webkit-tap-highlight-color: transparent;
-    display: block;
-    overflow: hidden;
-  }
-  .card:not(.dimmed) .card-logo { opacity: 0.75; }
-  .card-logo:active { opacity: 0.4; }
+
 
 
 
@@ -299,21 +280,24 @@
 
 
   /* ── BUTTON BAR ── */
-  /* ── PROGRESS BAR ── */
+  /* ── PROGRESS BAR — sits inside card area, bottom of viewport ── */
   .progress-bar-wrap {
     position: fixed;
-    bottom: var(--btn-h);
-    left: 0; right: 0;
+    bottom: calc(var(--btn-h) + 15px);
+    left: calc(var(--sliver) + var(--gap) + 10px);
+    right: calc(var(--sliver) + var(--gap) + 10px);
     height: 3px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
     z-index: 21;
-    display: none; /* shown only when rememberPosition is true */
+    display: none;
   }
   .progress-bar-wrap.visible { display: block; }
   .progress-bar-fill {
     height: 100%;
     background: #e31e54;
-    border-radius: 0 2px 2px 0;
+    border-radius: 2px;
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: 0%;
   }
@@ -878,7 +862,8 @@ let total      = 0;
 let current    = 0;   // -1 = cover, 0..total-1 = numbered cards
 let hasCover     = false;
 let hasCoverBack = false;
-let hasAudio     = new Set(); // real indices with audio
+let hasAudio     = new Set();
+let cardNums     = []; // ordered list of card numbers that actually exist // real indices with audio
 let gateConfig   = null;  // set from config.json if leadMagnet: true
 let gateShown    = false;
 let hasBack      = new Set(); // real indices that have a back image (cardNb.png)
@@ -1002,37 +987,31 @@ async function discoverCards() {
   async function probe(path) {
     try { const r = await fetch(path,{method:'HEAD'}); return r.ok; } catch { return false; }
   }
-  async function probeN(n) {
-    try { const r = await fetch(`${IMAGE_FOLDER}card${n}${IMAGE_EXT}`,{method:'HEAD'}); return r.ok ? n : 0; }
-    catch { return 0; }
-  }
-  hasCover = await probe(`${IMAGE_FOLDER}cover${IMAGE_EXT}`);
+
+  hasCover     = await probe(`${IMAGE_FOLDER}cover${IMAGE_EXT}`);
   hasCoverBack = await probe(`${IMAGE_FOLDER}coverb${IMAGE_EXT}`);
 
-  // Probe for back images (card1b.png, card2b.png...) in parallel
-  // We only probe up to whatever total we found — set after milestones below
-  // so we do a second pass after total is known (see end of function)
-  const milestones = [1,5,10,20,30,40,50,60,70,80,90,100,120,150,MAX_CARDS];
-  const hits = await Promise.all(milestones.map(probeN));
-  const high = Math.max(...hits);
-  if (!high) return 0;
-  const si  = milestones.indexOf(high);
-  const low = si > 0 ? milestones[si-1]+1 : 1;
-  const fine = [];
-  for (let n = low; n <= Math.min(high+10, MAX_CARDS); n++) fine.push(n);
-  const t = Math.max(...(await Promise.all(fine.map(probeN))));
+  // Probe all slots 1..MAX_CARDS in parallel — build sparse list of what exists
+  const nums = Array.from({length: MAX_CARDS}, (_, i) => i + 1);
+  const exists = await Promise.all(
+    nums.map(n => probe(`${IMAGE_FOLDER}card${n}${IMAGE_EXT}`))
+  );
 
-  // Probe back images and audio files in parallel
+  cardNums = nums.filter((_, i) => exists[i]);
+  const t  = cardNums.length;
+  if (!t) return 0;
+
+  // Probe back images and audio for cards that exist
   const backProbes  = [];
   const audioProbes = [];
-  for (let n = 1; n <= t; n++) {
+  cardNums.forEach((n, i) => {
     backProbes.push(
-      probe(`${IMAGE_FOLDER}card${n}b${IMAGE_EXT}`).then(ok => ok ? hasBack.add(n - 1) : null)
+      probe(`${IMAGE_FOLDER}card${n}b${IMAGE_EXT}`).then(ok => ok ? hasBack.add(i) : null)
     );
     audioProbes.push(
-      probe(`${IMAGE_FOLDER}card${n}.mp3`).then(ok => ok ? hasAudio.add(n - 1) : null)
+      probe(`${IMAGE_FOLDER}card${n}.mp3`).then(ok => ok ? hasAudio.add(i) : null)
     );
-  }
+  });
   await Promise.all([...backProbes, ...audioProbes]);
 
   return t;
@@ -1107,26 +1086,7 @@ function makeSlot(type, realIndex, slotIndex) {
     card.appendChild(bm);
   }
 
-  // Brand logo — bottom left — links to deck URL from config
-  if (type !== 'ghost-last' && type !== 'ghost-first' && type !== 'cover') {
-    const logo = document.createElement('img');
-    logo.className = 'card-logo';
-    logo.src = 'brand-logo.png';
-    logo.alt = 'Brand';
-    logo.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    logo.addEventListener('touchend', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const shareUrl = window.DECK_URL || window.location.origin;
-      if (navigator.share) {
-        navigator.share({ url: shareUrl }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).catch(() => {});
-      }
-    }, { passive: false });
-    logo.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
-    card.appendChild(logo);
-  }
+
 
 
   // Audio button — only on numbered cards with audio
@@ -1135,7 +1095,7 @@ function makeSlot(type, realIndex, slotIndex) {
     ab.type = 'button';
     ab.className = 'audio-btn';
     ab.title = 'Play audio';
-    ab.dataset.audioSrc = `${IMAGE_FOLDER}card${realIndex + 1}.mp3`;
+    ab.dataset.audioSrc = `${IMAGE_FOLDER}card${cardNums[realIndex] || (realIndex + 1)}.mp3`;
     ab.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
     ab.addEventListener('touchend', e => {
       e.preventDefault();
@@ -1260,7 +1220,7 @@ function loadFavSlot(si) {
   const img = new Image();
   img.alt = `Card ${ri + 1}`;
   img.onload = () => img.classList.add('loaded');
-  img.src = `${IMAGE_FOLDER}card${ri + 1}${IMAGE_EXT}`;
+  img.src = `${IMAGE_FOLDER}card${cardNums[ri] || (ri + 1)}${IMAGE_EXT}`;
   front.insertBefore(img, front.firstChild);
   if (hasBack.has(ri)) {
     const back = card.querySelector('.card-face.back');
@@ -1268,7 +1228,7 @@ function loadFavSlot(si) {
       const bimg = new Image();
       bimg.alt = `Card ${ri + 1} back`;
       bimg.onload = () => bimg.classList.add('loaded');
-      bimg.src = `${IMAGE_FOLDER}card${ri + 1}b${IMAGE_EXT}`;
+      bimg.src = `${IMAGE_FOLDER}card${cardNums[ri] || (ri + 1)}b${IMAGE_EXT}`;
       back.insertBefore(bimg, back.firstChild);
     }
   }
@@ -1288,7 +1248,7 @@ function loadSlot(si) {
   if (type === 'cover') {
     src = hasCover ? `${IMAGE_FOLDER}cover${IMAGE_EXT}` : `${IMAGE_FOLDER}card1${IMAGE_EXT}`;
   } else {
-    src = `${IMAGE_FOLDER}card${ri + 1}${IMAGE_EXT}`;
+    src = `${IMAGE_FOLDER}card${cardNums[ri] || (ri + 1)}${IMAGE_EXT}`;
   }
   const front = card.querySelector('.card-face.front') || card;
   const img = new Image();
@@ -1306,7 +1266,7 @@ function loadSlot(si) {
       const bimg = new Image();
       const backSrc = type === 'cover'
         ? `${IMAGE_FOLDER}coverb${IMAGE_EXT}`
-        : `${IMAGE_FOLDER}card${ri + 1}b${IMAGE_EXT}`;
+        : `${IMAGE_FOLDER}card${cardNums[ri] || (ri + 1)}b${IMAGE_EXT}`;
       bimg.alt = type === 'cover' ? 'Cover back' : `Card ${ri + 1} back`;
       bimg.onload = () => bimg.classList.add('loaded');
       bimg.src = backSrc;
@@ -1609,8 +1569,8 @@ viewport.addEventListener('touchend', e => {
     if      (goLeft)  next = current + 1;
     else if (goRight) next = current - 1;
   } else {
-    if      (goLeft)  next = current === -1 ? 0 : current + 1;
-    else if (goRight) next = current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
+    if      (goLeft)  next = current === -1 ? 0 : Math.min(current + 1, total - 1);
+    else if (goRight) next = current === -1 ? -1 : Math.max(current - 1, -1);
   }
   goTo(next, true);
 
@@ -1654,8 +1614,8 @@ window.addEventListener('mouseup', () => {
     if      (goLeft)  next = current + 1;
     else if (goRight) next = current - 1;
   } else {
-    if      (goLeft)  next = current === -1 ? 0 : current + 1;
-    else if (goRight) next = current === -1 ? total - 1 : current === 0 ? -1 : current - 1;
+    if      (goLeft)  next = current === -1 ? 0 : Math.min(current + 1, total - 1);
+    else if (goRight) next = current === -1 ? -1 : Math.max(current - 1, -1);
   }
   goTo(next, true);
 });
@@ -1763,16 +1723,17 @@ btnRandom.addEventListener('click', e => {
   // If rememberPosition deck — skip to next section (multiples of 10)
   if (window.REMEMBER_POSITION) {
     if (current === -1) { goTo(0, true); return; }
-    // Find next section header (card index at multiple of 10, 0-based: 9,19,29...)
-    // Section headers are card10, card20 etc = index 9, 19, 29...
-    const sectionIndices = [];
-    for (let i = 9; i < total; i += 10) sectionIndices.push(i);
-    const next = sectionIndices.find(s => s > current);
+    // Find next section header — card whose number is a multiple of 10
+    // Uses cardNums[] to handle sparse decks correctly
+    const sectionIndices = cardNums
+      .map((n, i) => ({ n, i }))
+      .filter(({ n }) => n % 10 === 0)
+      .map(({ i }) => i);
+    const next = sectionIndices.find(i => i > current);
     if (next !== undefined) {
       goTo(next, true);
     } else {
-      // Past last section — go back to cover
-      goTo(-1, true);
+      goTo(-1, true); // past last section — back to cover
     }
     return;
   }
@@ -1827,6 +1788,11 @@ async function loadConfig() {
     window.DECK_URL = cfg.deckUrl || window.location.origin;
     window.REMEMBER_POSITION = !!cfg.rememberPosition;
     if (cfg.accentColor) window.ACCENT_COLOR = cfg.accentColor;
+    // Update button label for reflection decks
+    if (window.REMEMBER_POSITION) {
+      const btn = document.getElementById('btnRandom');
+      if (btn) { btn.textContent = '⏩'; btn.title = 'Skip to next section'; }
+    }
 
     // Lead magnet gate config
     if (cfg.leadMagnet && cfg.sendfoxListId) {
